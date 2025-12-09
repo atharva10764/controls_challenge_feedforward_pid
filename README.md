@@ -1,105 +1,52 @@
-Comma Controls Challenge Submission – Preview Feedforward PI + Adaptive Smoothing Controller
+# comma.ai Controls Challenge – Feedforward PID Controller
 
-This repository contains my controller submission for the comma.ai Controls Challenge.
-I designed a Preview Feedforward PI controller with Adaptive Smoothing, which achieves significantly lower total cost compared to the baseline PID controller used in the starter code.
+This repository contains my solution to the comma.ai Controls Challenge.  
+I started from the provided PID controller and ended up with a **feedforward + PID + smoothing** controller that significantly improves the TinyPhysics benchmark cost.
 
-🚗 Controller Summary
+---
 
-The controller combines feedforward prediction, PI feedback, and adaptive smoothing to minimize lateral acceleration error and steering jerk.
+## Controller: `preview_pi_ff`
 
-1. Feedforward (Preview) Term
+**File:** `controllers/preview_pi_smooth.py`
 
-Uses the first element of the future lateral acceleration plan:
+The final controller combines three ideas:
 
-u_ff = k_ff * future_plan.lataccel[0]
+1. **Baseline PID feedback**  
+   I reuse comma’s provided `pid` controller as a stabilizing feedback term that reacts to lateral acceleration tracking error.
 
+2. **Feedforward from previewed lateral acceleration**  
+   Using `future_plan.lataccel` (a ~5 second preview of the desired lateral acceleration), I compute a simple feedforward steering term:
+   - Take the mean of the first ~1 second of `future_plan.lataccel`
+   - Multiply by a gain `k_ff = 0.15`
+   - Add this to the PID output
 
-This anticipates upcoming curvature and reduces lag.
+   This reduces lag between the desired and actual lateral acceleration, especially in curves, since the controller no longer waits for error to appear before acting.
 
-2. PI Feedback Term
-error = target_lataccel - current_lataccel
-u_fb = k_p * error + k_i * ∑ error
+3. **Light smoothing of the combined command**  
+   I apply an exponential smoothing filter to the combined feedforward + PID steering command with `alpha = 0.9`:
 
+    $$u_\text{smooth}(k) = \alpha \, u_\text{raw}(k) + (1 - \alpha) \, u_\text{prev}(k)$$
 
-This corrects tracking drift and improves stability.
+   This slightly reduces steering jerk without degrading tracking.
 
-3. Adaptive Command Smoothing
+The final tuned parameters are:
 
-To reduce jerk while remaining responsive, we use a dynamic smoothing factor:
+- `k_ff = 0.15`
+- `alpha = 0.9`
+- `steer_range = [-2, 2]` (matching `tinyphysics.py`)
 
-u_smooth(k) = α * u_raw(k) + (1 − α) * u_prev(k)
+---
 
+## How to run
 
-If the controller needs a large correction → increase responsiveness
+From the repo root:
 
-If the correction is small → increase smoothing (reduces jerk)
+```bash
+# Baseline PID on TinyPhysics
+python tinyphysics.py --model_path ./models/tinyphysics.onnx --data_path ./data --num_segs 5000 --controller pid
 
-This adaptivity is crucial for reducing total cost.
+# My controller
+python tinyphysics.py --model_path ./models/tinyphysics.onnx --data_path ./data --num_segs 5000 --controller preview_pi_smooth
 
-📊 Performance (5000 SYNTHETIC Segments)
-Metric	Baseline PID	My Controller
-lataccel_cost	~1.71	1.35
-jerk_cost	~25.6	23.55
-total_cost	~111	90.89
-
-➡️ ~20% improvement over PID baseline
-
-📁 Repository Structure
-controllers/
-  ├── pid.py
-  ├── preview_pi_smooth.py   ← My controller
-models/
-  └── tinyphysics.onnx
-tinyphysics.py
-eval_report.txt              ← Included evaluation results
-
-▶️ Reproducing My Results
-
-Use the following command:
-
-python tinyphysics.py \
-  --model_path ./models/tinyphysics.onnx \
-  --data_path ./data \
-  --num_segs 5000 \
-  --controller preview_pi_smooth
-
-
-This runs the evaluation on the full dataset and prints:
-
-lataccel_cost
-
-jerk_cost
-
-total_cost
-
-A histogram visualization is also shown at the end.
-
-🧠 Why This Controller Works Well
-
-Feedforward term handles anticipated curvature
-
-PI term fixes residual tracking errors
-
-Adaptive smoothing balances jerk reduction with responsiveness
-
-Stable across many synthetic test segments
-
-Extremely simple and computationally cheap
-
-This simplicity + performance makes it a strong submission for the challenge.
-
-📬 Submission Details
-
-Controller name: preview_pi_smooth
-
-Key strengths: low jerk, responsive at high curvature, robust on long rollouts
-
-Eval report: see eval_report.txt
-
-Command used: (same as above)
-
-🙌 Acknowledgments
-
-Thanks to comma.ai for the challenge and public dataset.
-This submission is open for review, experimentation, and improvement.
-
+# Comparison report (HTML) between PID and my controller
+python eval.py --model_path ./models/tinyphysics.onnx --data_path ./data --num_segs 5000 --test_controller preview_pi_smooth --baseline_controller pid
