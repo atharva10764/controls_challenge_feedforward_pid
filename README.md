@@ -111,22 +111,18 @@ controls_challenge/
 ├── tinyphysics.py
 ├── eval.py
 └── README.md
+└── report.html
 ```
 
 🙌 Acknowledgments
 
 Thanks to comma.ai for releasing TinyPhysics, supporting open research, and hosting this challenge.
-This controller is intentionally simple, interpretable, and a strong baseline for future extensions such as MPC or RL.
+This submission focuses on a simple, interpretable improvement over baseline PID while achieving leaderboard-eligible performance.
+
+I will continue building on this work by experimenting with MPC-based and Reinforcement-Learning-based controllers to explore how far intelligent control can be pushed beyond classical approaches in this challenge environment.
 
 
 ---
 
-If you want, I can also:
 
-⭐ Add badges (Python version, challenge version, score badge)  
-📊 Add performance plots directly into the README  
-🏆 Rewrite it in a more “research-paper” style  
-📁 Create a professional PDF version for your portfolio  
-
-Just tell me!
 
