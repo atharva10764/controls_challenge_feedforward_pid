@@ -19,6 +19,7 @@ The controller blends **future-preview feedforward**, **PID stabilization**, and
 I reuse the provided `pid` controller to correct residual error between the target and simulated lateral acceleration:
 
 u_ff = k_ff * mean(future_plan.lataccel[:10])
+
 u_raw = u_pid + u_ff
 
 
@@ -29,11 +30,8 @@ This significantly reduces phase lag and improves tracking on curves.
 ## 3. Adaptive Exponential Smoothing (Jerk Reduction)
 
 To keep the steering command smooth:
-$$
-u_\text{smooth}(k)
-= \alpha \, u_\text{raw}(k)
-+ (1 - \alpha) \, u_\text{prev}(k)
-$$
+
+$$u_\text{smooth}(k)= \alpha \, u_\text{raw}(k)+ (1 - \alpha) \, u_\text{prev}(k)$$
 
 Where:
 
@@ -97,7 +95,7 @@ python eval.py \
   --test_controller preview_pi_smooth \
   --baseline_controller pid
 ```
-
+```
 controls_challenge/
 │
 ├── controllers/
@@ -113,6 +111,7 @@ controls_challenge/
 ├── tinyphysics.py
 ├── eval.py
 └── README.md
+```
 
 🙌 Acknowledgments
 
